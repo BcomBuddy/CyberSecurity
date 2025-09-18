@@ -7,15 +7,15 @@ const Homepage: React.FC = () => {
   const videoOptions = {
     english: {
       label: 'English',
-      url: 'https://www.youtube.com/embed/KsuQPurJHRc?rel=0&modestbranding=1'
+      url: 'https://www.youtube.com/embed/Tg7cdKkHyeU?rel=0&modestbranding=1'
     },
     hindi: {
       label: 'Hindi/Urdu',
-      url: 'https://www.youtube.com/embed/bP6ufAUR3xU?rel=0&modestbranding=1'
+      url: 'https://www.youtube.com/embed/XMhbMSDV_Ww?rel=0&modestbranding=1'
     },
     telugu: {
       label: 'Telugu',
-      url: 'https://www.youtube.com/embed/mNg14QeZZnk?rel=0&modestbranding=1'
+      url: 'https://www.youtube.com/embed/W0OSz8ONFqw?rel=0&modestbranding=1'
     }
   };
 
