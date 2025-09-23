@@ -3,7 +3,8 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   User,
-  AuthError
+  AuthError,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
@@ -74,4 +75,17 @@ export const getCurrentUser = (): User | null => {
 // Listen to auth state changes
 export const onAuthStateChanged = (callback: (user: User | null) => void) => {
   return auth.onAuthStateChanged(callback);
+};
+
+// Password Reset
+export const resetPassword = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email, {
+      url: window.location.origin,
+      handleCodeInApp: false,
+    });
+  } catch (error) {
+    const authError = error as AuthError;
+    throw new Error(getErrorMessage(authError));
+  }
 };
