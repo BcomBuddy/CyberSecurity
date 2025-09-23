@@ -1,12 +1,13 @@
 import React from 'react';
-import { Home, Shield, Globe, Eye, Lock, Scale } from 'lucide-react';
+import { Home, Shield, Globe, Eye, Lock, Scale, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, onLogout }) => {
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'module1', label: 'Module I: Introduction to Cyber Security', icon: Shield },
@@ -53,6 +54,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
           })}
         </ul>
       </nav>
+
+      {/* Logout Button - Fixed at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700 bg-slate-900">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 hover:bg-red-600/20 text-slate-300 hover:text-red-300 group"
+        >
+          <LogOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-400" />
+          <span className="text-sm font-medium">Sign Out</span>
+        </button>
+      </div>
     </div>
   );
 };
