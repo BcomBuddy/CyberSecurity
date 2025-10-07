@@ -11,6 +11,33 @@ import { auth } from '../firebase/config';
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 
+// SSO User Data Interface
+export interface SSOUserData {
+  uid: string;
+  email: string;
+  name: string;
+  yearOfStudy: string;
+  role: string;
+  isAdmin: boolean;
+  shellDomain?: string;
+  microAppDomain?: string;
+  firebaseToken?: string;
+}
+
+// Combined User Data Interface
+export interface UserData {
+  uid: string;
+  email: string;
+  name: string;
+  yearOfStudy?: string;
+  role?: string;
+  isAdmin?: boolean;
+  shellDomain?: string;
+  microAppDomain?: string;
+  firebaseToken?: string;
+  authType: 'firebase' | 'sso';
+}
+
 // Custom error messages for better UX
 const getErrorMessage = (error: AuthError): string => {
   switch (error.code) {
@@ -87,5 +114,140 @@ export const resetPassword = async (email: string): Promise<void> => {
   } catch (error) {
     const authError = error as AuthError;
     throw new Error(getErrorMessage(authError));
+  }
+};
+
+// ===== SSO Authentication Methods =====
+
+// SSO Token Validation
+export const validateSSOTokenFromShell = (): SSOUserData | null => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const isSSO = urlParams.get('sso') === 'true';
+
+  if (!token || !isSSO) {
+    return null;
+  }
+
+  try {
+    const tokenData = JSON.parse(decodeURIComponent(token));
+    
+    // Validate required fields
+    if (!tokenData.uid || !tokenData.email) {
+      console.error('SSO Token missing required fields');
+      return null;
+    }
+
+    // Check token expiration
+    if (tokenData.exp && tokenData.exp < Math.floor(Date.now() / 1000)) {
+      console.error('SSO Token has expired');
+      return null;
+    }
+
+    const userData: SSOUserData = {
+      uid: tokenData.uid,
+      email: tokenData.email,
+      name: tokenData.name || 'User',
+      yearOfStudy: tokenData.yearOfStudy || '',
+      role: tokenData.role || 'student',
+      isAdmin: tokenData.isAdmin || false,
+      shellDomain: tokenData.shellDomain,
+      microAppDomain: tokenData.microAppDomain,
+      firebaseToken: tokenData.firebaseToken
+    };
+
+    // Store user data in localStorage
+    localStorage.setItem('sso_user_data', JSON.stringify(userData));
+    
+    // Clean URL parameters
+    cleanSSOUrl();
+    
+    console.log('✅ SSO Login successful:', userData);
+    return userData;
+  } catch (error) {
+    console.error('Error validating SSO token:', error);
+    return null;
+  }
+};
+
+// Get stored SSO user data
+export const getSSOUserData = (): SSOUserData | null => {
+  const userData = localStorage.getItem('sso_user_data');
+  if (!userData) return null;
+
+  try {
+    return JSON.parse(userData);
+  } catch {
+    return null;
+  }
+};
+
+// Check if user is authenticated via SSO
+export const isSSOAuthenticated = (): boolean => {
+  return getSSOUserData() !== null;
+};
+
+// SSO Logout
+export const logoutSSO = (): void => {
+  localStorage.removeItem('sso_user_data');
+  
+  const userData = getSSOUserData();
+  const shellDomain = userData?.shellDomain || 
+                     new URLSearchParams(window.location.search).get('shell') || 
+                     process.env.REACT_APP_SHELL_DOMAIN || 
+                     'https://bcombuddy.netlify.app';
+  
+  window.location.href = shellDomain;
+};
+
+// Clean SSO URL parameters
+const cleanSSOUrl = (): void => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('token');
+  url.searchParams.delete('sso');
+  url.searchParams.delete('shell');
+  window.history.replaceState({}, document.title, url.toString());
+};
+
+// ===== Combined Authentication Methods =====
+
+// Get current user data (Firebase or SSO)
+export const getCurrentUserData = (): UserData | null => {
+  // First check for SSO authentication
+  const ssoUser = getSSOUserData();
+  if (ssoUser) {
+    return {
+      ...ssoUser,
+      authType: 'sso'
+    };
+  }
+
+  // Fallback to Firebase authentication
+  const firebaseUser = getCurrentUser();
+  if (firebaseUser) {
+    return {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || firebaseUser.email || 'User',
+      authType: 'firebase'
+    };
+  }
+
+  return null;
+};
+
+// Check if user is authenticated (Firebase or SSO)
+export const isUserAuthenticated = (): boolean => {
+  return isSSOAuthenticated() || !!getCurrentUser();
+};
+
+// Combined logout function
+export const logoutUser = async (): Promise<void> => {
+  const userData = getCurrentUserData();
+  
+  if (userData?.authType === 'sso') {
+    logoutSSO();
+  } else {
+    await signOut();
   }
 };

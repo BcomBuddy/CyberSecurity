@@ -2,30 +2,18 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Homepage from './components/Homepage';
 import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 import ModuleI from './components/modules/ModuleI';
 import ModuleII from './components/modules/ModuleII';
 import ModuleIII from './components/modules/ModuleIII';
 import ModuleIV from './components/modules/ModuleIV';
 import ModuleV from './components/modules/ModuleV';
-import { onAuthStateChanged, signOut } from './services/authService';
-import { User } from 'firebase/auth';
+import { useAuth } from './hooks/useAuth';
+import { logoutUser } from './services/authService';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Listen to authentication state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged((user) => {
-      setUser(user);
-      setIsAuthenticated(!!user);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { user, loading, isAuthenticated, authType, logout } = useAuth();
 
   const handleLogin = () => {
     // This will be called after successful authentication
@@ -34,7 +22,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
       setCurrentPage('home');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -61,7 +49,7 @@ function App() {
   };
 
   // Show loading spinner while checking authentication
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -72,18 +60,20 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated
+  // Show login page if not authenticated (only for Firebase auth)
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
-      <main className="flex-1 ml-80">
-        {renderPage()}
-      </main>
-    </div>
+    <ProtectedRoute>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
+        <main className="flex-1 ml-80">
+          {renderPage()}
+        </main>
+      </div>
+    </ProtectedRoute>
   );
 }
 
